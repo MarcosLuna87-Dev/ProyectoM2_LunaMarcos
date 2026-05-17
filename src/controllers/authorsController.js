@@ -1,5 +1,5 @@
-import { getAllAuthorsService, getAuthorByIdService } from "../services/authorsService.js";
-import { isValidId } from "../utils/validators.js";
+import { getAllAuthorsService, getAuthorByIdService, createAuthorService } from "../services/authorsService.js";
+import { isValidId, isValidAuthorData } from "../utils/validators.js";
 
 export const getAllAuthors = async (req, res) => {
   try {    
@@ -38,4 +38,28 @@ export const getAuthorById = async (req, res) => {
   }
 };
 
-
+export const createAuthor = async (req, res) => {
+  try {
+    const { name, email, bio } = req.body;
+    
+    // VALIDACIÓN: Controlamos que los datos cumplan con los tipos esperados
+    if (!isValidAuthorData(name, email, bio)) {
+      return res.status(400).json({ error: "El nombre y el email son obligatorios y deben ser válidos" });
+    }
+    
+    // Llamamos al servicio para impactar en PostgreSQL
+    const newAuthor = await createAuthorService(name, email, bio);
+    
+    // Respondemos con 201 (Created) y el nuevo objeto insertado
+    return res.status(201).json(newAuthor);
+  } catch (error) {
+    console.error("❌ Error al crear el autor:", error.message);
+    
+    // Restricción UNIQUE de PostgreSQL: Si el email ya existe, devolvemos un 409 (Conflict)
+    if (error.code === "23505") {
+      return res.status(409).json({ error: "El email provisto ya está registrado" });
+    }
+    
+    return res.status(500).json({ error: "Error interno del servidor" });
+  }
+};
