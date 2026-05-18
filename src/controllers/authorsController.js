@@ -1,4 +1,4 @@
-import { getAllAuthorsService, getAuthorByIdService, createAuthorService } from "../services/authorsService.js";
+import { getAllAuthorsService, getAuthorByIdService, createAuthorService, updateAuthorService } from "../services/authorsService.js";
 import { isValidId, isValidAuthorData } from "../utils/validators.js";
 
 export const getAllAuthors = async (req, res) => {
@@ -58,6 +58,43 @@ export const createAuthor = async (req, res) => {
     // Restricción UNIQUE de PostgreSQL: Si el email ya existe, devolvemos un 409 (Conflict)
     if (error.code === "23505") {
       return res.status(409).json({ error: "El email provisto ya está registrado" });
+    }
+    
+    return res.status(500).json({ error: "Error interno del servidor" });
+  }
+};
+
+export const updateAuthor = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, email, bio } = req.body;
+    
+    // 1. VALIDACIÓN: ID válido
+    if (!isValidId(id)) {
+      return res.status(400).json({ error: "El ID provisto debe ser un número entero válido" });
+    }
+    
+    // 2. VALIDACIÓN: Datos del body válidos
+    if (!isValidAuthorData(name, email, bio)) {
+      return res.status(400).json({ error: "El nombre y el email son obligatorios y deben ser válidos" });
+    }
+    
+    // Llamamos al servicio para actualizar en PostgreSQL
+    const updatedAuthor = await updateAuthorService(id, name, email, bio);
+    
+    // 3. VALIDACIÓN: Si no se encontró el autor para actualizar
+    if (!updatedAuthor) {
+      return res.status(404).json({ error: "Autor no encontrado para actualizar" });
+    }
+    
+    // Respondemos con 200 (OK) y el objeto modificado
+    return res.status(200).json(updatedAuthor);
+  } catch (error) {
+    console.error("❌ Error al actualizar el autor:", error.message);
+    
+    // Controlamos si quieren cambiar el email por uno que ya usa otro autor (restricción UNIQUE)
+    if (error.code === "23505") {
+      return res.status(409).json({ error: "El email provisto ya está registrado por otro usuario" });
     }
     
     return res.status(500).json({ error: "Error interno del servidor" });
