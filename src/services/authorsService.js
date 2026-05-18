@@ -29,14 +29,15 @@ export const createAuthorService = async (name, email, bio) => {
 export const updateAuthorService = async (id, name, email, bio) => {
   const query = `
     UPDATE authors 
-    SET name = $2, email = $3, bio = $4 
+    SET 
+      name = COALESCE($2, name), 
+      email = COALESCE($3, email), 
+      bio = COALESCE($4, bio) 
     WHERE id = $1 
     RETURNING *;
   `;
   
-  const result = await pool.query(query, [id, name, email, bio || null]);
-  
-  // Retornamos la fila actualizada (o undefined si no se modificó nada)
+  const result = await pool.query(query, [id, name, email, bio]);
   return result.rows[0];
 };
 

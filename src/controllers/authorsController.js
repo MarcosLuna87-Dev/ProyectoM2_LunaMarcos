@@ -68,35 +68,47 @@ export const updateAuthor = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, email, bio } = req.body;
-    
-    // 1. VALIDACIÓN: ID válido
+
+    // 1. Validar ID de la URL
     if (!isValidId(id)) {
       return res.status(400).json({ error: "El ID provisto debe ser un número entero válido" });
     }
-    
-    // 2. VALIDACIÓN: Datos del body válidos
-    if (!isValidAuthorData(name, email, bio)) {
-      return res.status(400).json({ error: "El nombre y el email son obligatorios y deben ser válidos" });
+
+    // 2. Validaciones Dinámicas del Body
+    if (name !== undefined && (typeof name !== "string" || name.trim() === "")) {
+      return res.status(400).json({ error: "El nombre enviado debe ser un texto válido" });
     }
-    
-    // Llamamos al servicio para actualizar en PostgreSQL
-    const updatedAuthor = await updateAuthorService(id, name, email, bio);
-    
-    // 3. VALIDACIÓN: Si no se encontró el autor para actualizar
+
+    if (email !== undefined && (typeof email !== "string" || email.trim() === "")) {
+      return res.status(400).json({ error: "El email enviado debe ser un texto válido" });
+    }
+
+    if (bio !== undefined && typeof bio !== "string") {
+      return res.status(400).json({ error: "La biografía enviada debe ser un texto válido" });
+    }
+
+    // 3. Ejecutar servicio pasando null si el campo vino undefined
+    const updatedAuthor = await updateAuthorService(
+      id,
+      name !== undefined ? name : null,
+      email !== undefined ? email : null,
+      bio !== undefined ? bio : null
+    );
+
+    // 4. Controlar si existía el autor
     if (!updatedAuthor) {
       return res.status(404).json({ error: "Autor no encontrado para actualizar" });
     }
-    
-    // Respondemos con 200 (OK) y el objeto modificado
+
     return res.status(200).json(updatedAuthor);
   } catch (error) {
     console.error("❌ Error al actualizar el autor:", error.message);
-    
-    // Controlamos si quieren cambiar el email por uno que ya usa otro autor (restricción UNIQUE)
+
+    // Mantenemos el control del email repetido por si intentan parcializar con uno ya usado
     if (error.code === "23505") {
       return res.status(409).json({ error: "El email provisto ya está registrado por otro usuario" });
     }
-    
+
     return res.status(500).json({ error: "Error interno del servidor" });
   }
 };
