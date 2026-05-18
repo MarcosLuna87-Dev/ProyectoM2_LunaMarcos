@@ -1,4 +1,4 @@
-import { getAllPostsService, getPostByIdService } from "../services/postsService.js";
+import { getAllPostsService, getPostByIdService, getPostsByAuthorService } from "../services/postsService.js";
 import { isValidId } from "../utils/validators.js";
 
 // Controlador para todos los posts
@@ -31,6 +31,26 @@ export const getPostDetail = async (req, res) => {
     return res.status(200).json(post);
   } catch (error) {
     console.error("❌ Error al obtener el detalle del post:", error.message);
+    return res.status(500).json({ error: "Error interno del servidor" });
+  }
+};
+
+export const getPostsByAuthor = async (req, res) => {
+  try {
+    const { authorId } = req.params;
+
+    // Validamos el parámetro que entra por la URL
+    if (!isValidId(authorId)) {
+      return res.status(400).json({ error: "El ID del autor provisto debe ser un número entero válido" });
+    }
+
+    // Llamamos al servicio con el JOIN
+    const posts = await getPostsByAuthorService(authorId);
+
+    // Devolvemos la lista de posts (si no tiene, devolverá un array vacío [])
+    return res.status(200).json(posts);
+  } catch (error) {
+    console.error("❌ Error al obtener posts del autor:", error.message);
     return res.status(500).json({ error: "Error interno del servidor" });
   }
 };
