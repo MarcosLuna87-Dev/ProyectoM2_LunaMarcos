@@ -1,4 +1,4 @@
-import { getAllPostsService, getPostByIdService, getPostsByAuthorService, createPostService, updatePostService } from "../services/postsService.js";
+import { getAllPostsService, getPostByIdService, getPostsByAuthorService, createPostService, updatePostService, deletePostService } from "../services/postsService.js";
 import { isValidId, isValidPostData } from "../utils/validators.js";
 
 // Controlador para todos los posts
@@ -131,6 +131,34 @@ export const updatePost = async (req, res) => {
       return res.status(400).json({ error: "El autor especificado (author_id) no existe" });
     }
 
+    return res.status(500).json({ error: "Error interno del servidor" });
+  }
+};
+
+export const deletePost = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // 1. Validar si el ID es un número entero válido
+    if (!isValidId(id)) {
+      return res.status(400).json({ error: "El ID provisto debe ser un número entero válido" });
+    }
+
+    // 2. Ejecutar el servicio de borrado
+    const deletedPost = await deletePostService(id);
+
+    // 3. Si el post no existía en la base de datos
+    if (!deletedPost) {
+      return res.status(404).json({ error: "Post no encontrado para eliminar" });
+    }
+
+    // 4. Respuesta exitosa
+    return res.status(200).json({
+      message: "Post eliminado exitosamente",
+      post: deletedPost
+    });
+  } catch (error) {
+    console.error("❌ Error al eliminar el post:", error.message);
     return res.status(500).json({ error: "Error interno del servidor" });
   }
 };

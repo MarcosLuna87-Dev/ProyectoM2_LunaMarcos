@@ -66,3 +66,16 @@ export const updatePostService = async (id, title, content, author_id, published
   
   return result.rows[0];
 };
+
+export const deletePostService = async (id) => {
+  const query = `
+    DELETE FROM posts 
+    WHERE id = $1 
+    RETURNING *;
+  `;
+  
+  const result = await pool.query(query, [id]);
+  
+  // Retorna el post eliminado, o undefined si el ID no existía
+  return result.rows[0];
+};
