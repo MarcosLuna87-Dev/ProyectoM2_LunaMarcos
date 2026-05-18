@@ -1,5 +1,5 @@
-import { getAllPostsService, getPostByIdService, getPostsByAuthorService } from "../services/postsService.js";
-import { isValidId } from "../utils/validators.js";
+import { getAllPostsService, getPostByIdService, getPostsByAuthorService, createPostService } from "../services/postsService.js";
+import { isValidId, isValidPostData } from "../utils/validators.js";
 
 // Controlador para todos los posts
 export const getAllPosts = async (req, res) => {
@@ -51,6 +51,32 @@ export const getPostsByAuthor = async (req, res) => {
     return res.status(200).json(posts);
   } catch (error) {
     console.error("❌ Error al obtener posts del autor:", error.message);
+    return res.status(500).json({ error: "Error interno del servidor" });
+  }
+};
+
+export const createPost = async (req, res) => {
+  try {
+    const { title, content, author_id, published } = req.body;
+
+    // 1. VALIDACIÓN: Tipos de datos correctos y campos obligatorios presentes
+    if (!isValidPostData(title, content, author_id)) {
+      return res.status(400).json({ error: "El título, contenido y un ID de autor válido son obligatorios" });
+    }
+
+    // 2. Ejecución del servicio
+    const newPost = await createPostService(title, content, author_id, published);
+
+    // 3. Respuesta exitosa (201 Created)
+    return res.status(201).json(newPost);
+  } catch (error) {
+    console.error("❌ Error al crear el post:", error.message);
+
+    // Controlamos el error de clave foránea (author_id no existe en la tabla authors)
+    if (error.code === "23503") {
+      return res.status(400).json({ error: "El autor especificado (author_id) no existe" });
+    }
+
     return res.status(500).json({ error: "Error interno del servidor" });
   }
 };

@@ -14,3 +14,14 @@ export const isValidAuthorData = (name, email, bio) => {
 
   return true;
 };
+
+export const isValidPostData = (title, content, author_id) => {
+  // Validamos que title y content existan, sean strings y no estén vacíos
+  if (!title || typeof title !== "string" || title.trim() === "") return false;
+  if (!content || typeof content !== "string" || content.trim() === "") return false;
+  
+  // Validamos que author_id sea un número entero válido y mayor a 0
+  if (!author_id || isNaN(author_id) || Number(author_id) <= 0) return false;
+
+  return true;
+};

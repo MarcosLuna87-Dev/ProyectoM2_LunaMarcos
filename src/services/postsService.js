@@ -33,3 +33,17 @@ export const getPostsByAuthorService = async (authorId) => {
   // Retornamos todas las filas (un array de posts de ese autor)
   return result.rows;
 };
+
+export const createPostService = async (title, content, author_id, published) => {
+  const query = `
+    INSERT INTO posts (title, content, author_id, published)
+    VALUES ($1, $2, $3, $4)
+    RETURNING *;
+  `;
+  
+  // Si published no viene en el body, le pasamos false por defecto explicitamente o manejamos su valor booleano
+  const isPublished = published === true;
+
+  const result = await pool.query(query, [title, content, author_id, isPublished]);
+  return result.rows[0];
+};
