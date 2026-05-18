@@ -4,10 +4,21 @@ export const isValidId = (id) => {
   return !isNaN(id) && Number(id) > 0;
 };
 
+export const isValidEmailFormat = (email) => {
+  if (!email || typeof email !== "string") return false;
+  
+  // Expresión regular estándar para validar correos electrónicos
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email.trim());
+};
+
 export const isValidAuthorData = (name, email, bio) => {
   // name y email son NOT NULL en la base de datos, por ende obligatorios
   if (!name || typeof name !== "string" || name.trim() === "") return false;
   if (!email || typeof email !== "string" || email.trim() === "") return false;
+
+// 2. Validamos que cumpla con el formato correcto de email
+  if (!isValidEmailFormat(email)) return false;
   
   // bio es opcional, pero si el usuario manda algo, verificamos que sea un string
   if (bio && typeof bio !== "string") return false;
