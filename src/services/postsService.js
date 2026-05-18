@@ -47,3 +47,22 @@ export const createPostService = async (title, content, author_id, published) =>
   const result = await pool.query(query, [title, content, author_id, isPublished]);
   return result.rows[0];
 };
+
+export const updatePostService = async (id, title, content, author_id, published) => {
+  // COALESCE evalúa los argumentos en orden y se queda con el primero que NO sea NULL.
+  // Si $2 es NULL, se queda con la columna existente 'title'.
+  const query = `
+    UPDATE posts 
+    SET 
+      title = COALESCE($2, title), 
+      content = COALESCE($3, content), 
+      author_id = COALESCE($4, author_id), 
+      published = COALESCE($5, published) 
+    WHERE id = $1 
+    RETURNING *;
+  `;
+  
+  const result = await pool.query(query, [id, title, content, author_id, published]);
+  
+  return result.rows[0];
+};
