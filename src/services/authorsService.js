@@ -39,3 +39,16 @@ export const updateAuthorService = async (id, name, email, bio) => {
   // Retornamos la fila actualizada (o undefined si no se modificó nada)
   return result.rows[0];
 };
+
+export const deleteAuthorService = async (id) => {
+  const query = `
+    DELETE FROM authors 
+    WHERE id = $1 
+    RETURNING *;
+  `;
+  
+  const result = await pool.query(query, [id]);
+  
+  // Retorna el objeto del autor que fue eliminado, o undefined si no existía ese ID
+  return result.rows[0];
+};

@@ -1,4 +1,4 @@
-import { getAllAuthorsService, getAuthorByIdService, createAuthorService, updateAuthorService } from "../services/authorsService.js";
+import { getAllAuthorsService, getAuthorByIdService, createAuthorService, updateAuthorService, deleteAuthorService } from "../services/authorsService.js";
 import { isValidId, isValidAuthorData } from "../utils/validators.js";
 
 export const getAllAuthors = async (req, res) => {
@@ -97,6 +97,34 @@ export const updateAuthor = async (req, res) => {
       return res.status(409).json({ error: "El email provisto ya está registrado por otro usuario" });
     }
     
+    return res.status(500).json({ error: "Error interno del servidor" });
+  }
+};
+
+export const deleteAuthor = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // VALIDACIÓN: ID válido
+    if (!isValidId(id)) {
+      return res.status(400).json({ error: "El ID provisto debe ser un número entero válido" });
+    }
+    
+    // Llamamos al servicio para eliminar de la base de datos
+    const deletedAuthor = await deleteAuthorService(id);
+    
+    // Si el servicio no devolvió nada, significa que ese ID no existía
+    if (!deletedAuthor) {
+      return res.status(404).json({ error: "Autor no encontrado para eliminar" });
+    }
+    
+    // Respondemos con éxito y los datos del autor que se fue
+    return res.status(200).json({ 
+      message: "Autor eliminado exitosamente (y sus posts en cascada)", 
+      author: deletedAuthor 
+    });
+  } catch (error) {
+    console.error("❌ Error al eliminar el autor:", error.message);
     return res.status(500).json({ error: "Error interno del servidor" });
   }
 };
