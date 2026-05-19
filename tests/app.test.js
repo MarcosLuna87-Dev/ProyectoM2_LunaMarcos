@@ -112,4 +112,91 @@ describe("Integration Tests - API Endpoints", () => {
     });
 
   });
+  
+  // ==========================================
+  // ENDPOINTS DE POSTS
+  // ==========================================
+  describe("CRUD /posts", () => {
+
+    test("GET /posts - debería traer todos los posts de la semilla", async () => {
+      const response = await request(app).get("/posts");
+      expect(response.statusCode).toBe(200);
+      expect(Array.isArray(response.body)).toBe(true);
+      expect(response.body.length).toBe(5); // El seed tiene 5 posts
+    });
+
+    test("GET /posts/:id - debería traer el detalle de un post existente", async () => {
+      const response = await request(app).get("/posts/1"); // 'Tests Intro a Node.js'
+      expect(response.statusCode).toBe(200);
+      expect(response.body.title).toBe("Tests Intro a Node.js");
+    });
+
+    test("GET /posts/:id - debería dar 404 si el post no existe", async () => {
+      const response = await request(app).get("/posts/999");
+      expect(response.statusCode).toBe(404);
+      expect(response.body.error).toContain("Post no encontrado");
+    });
+
+    test("GET /posts/author/:authorId - debería traer los posts de un autor específico", async () => {
+      const response = await request(app).get("/posts/author/1"); // Ana tiene 3 posts en el seed
+      expect(response.statusCode).toBe(200);
+      expect(response.body.length).toBe(3);
+    });
+
+    test("POST /posts - crea un post con datos válidos", async () => {
+      const response = await request(app)
+        .post("/posts")
+        .send({
+          title: "Nuevo Post de Test",
+          content: "Contenido del post de integración...",
+          author_id: 2, // Carlos
+          published: true
+        });
+
+      expect(response.statusCode).toBe(201);
+      expect(response.body).toHaveProperty("id");
+      expect(response.body.title).toBe("Nuevo Post de Test");
+    });
+
+    test("POST /posts - rechaza con 400 si el author_id no existe (Clave Foránea)", async () => {
+      const response = await request(app)
+        .post("/posts")
+        .send({
+          title: "Post Huérfano",
+          content: "Este autor no existe en la DB",
+          author_id: 999 // ID inexistente
+        });
+
+      expect(response.statusCode).toBe(400);
+      expect(response.body.error).toContain("no existe");
+    });
+
+    test("PUT /posts/:id - permite actualización parcial (COALESCE)", async () => {
+      const response = await request(app)
+        .put("/posts/4") // 'Tests Manejo de errores en Express' (published: false)
+        .send({ published: true }); // Solo cambiamos el estado de publicación
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body.published).toBe(true);
+      expect(response.body.title).toBe("Tests Manejo de errores en Express"); // Se mantuvo gracias a COALESCE
+    });
+
+    test("DELETE /posts/:id - elimina un post existente", async () => {
+      const response = await request(app).delete("/posts/5");
+      expect(response.statusCode).toBe(200);
+      expect(response.body.message).toContain("eliminado exitosamente");
+    });
+
+    test("PROBANDO CASCADA: Al borrar un autor se deben eliminar sus posts automáticamente", async () => {
+      // 1. Borramos al autor ID 2 (Carlos)
+      await request(app).delete("/authors/2");
+
+      // 2. Intentamos buscar el post ID 2 que le pertenecía a Carlos
+      const response = await request(app).get("/posts/2");
+      
+      // 3. Debería dar 404 porque el ON DELETE CASCADE de Postgres lo borró de la tabla posts automáticamente
+      expect(response.statusCode).toBe(404);
+    });
+
+  });
 });
