@@ -1,0 +1,497 @@
+openapi: 3.1.1
+info:
+  title: Blog API
+  version: 1.0.0
+  description: API REST para gestionar autores y posts de un blog con manejo centralizado de errores.
+  contact:
+    name: Marcos - Equipo en Desarrollo
+    email: marcosluna@blog.com
+
+servers:
+  - url: http://localhost:3000
+    description: Servidor de desarrollo local
+
+components:
+  schemas:
+    Author:
+      type: object
+      required:
+        - id
+        - name
+        - email
+      properties:
+        id:
+          type: integer
+          description: ID único del autor (autoincremental en PostgreSQL)
+        name:
+          type: string
+          description: Nombre completo del autor
+        email:
+          type: string
+          format: email
+          description: Email único del autor
+        bio:
+          type: string
+          nullable: true
+          description: Biografía o descripción del autor
+        created_at:
+          type: string
+          format: date-time
+          description: Fecha y hora de registro en la base de datos
+
+    Post:
+      type: object
+      required:
+        - id
+        - title
+        - content
+        - author_id
+        - published
+      properties:
+        id:
+          type: integer
+          description: ID único de la publicación
+        title:
+          type: string
+          description: Título del post
+        content:
+          type: string
+          description: Contenido completo del post
+        author_id:
+          type: integer
+          description: ID del autor dueño del post (Clave foránea)
+        published:
+          type: boolean
+          description: Estado de publicación del post
+        created_at:
+          type: string
+          format: date-time
+          description: Fecha de creación de la publicación
+
+    PostWithAuthor:
+      type: object
+      description: Estructura extendida resultante del INNER JOIN para los posts de un autor
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        content:
+          type: string
+        published:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        author_id:
+          type: integer
+        author_name:
+          type: string
+          description: Nombre del autor obtenido mediante el JOIN
+        author_email:
+          type: string
+          format: email
+          description: Email del autor obtenido mediante el JOIN
+
+    Error:
+      type: object
+      required:
+        - error
+        - status
+      properties:
+        error:
+          type: string
+          description: Mensaje descriptivo del error capturado por el errorHandler
+        status:
+          type: integer
+          description: Código de estado HTTP correspondiente al error
+
+paths:
+  # =========================================================================
+  # RUTAS DE AUTORES (/authors)
+  # =========================================================================
+  /authors:
+    get:
+      summary: Obtener todos los autores
+      description: Devuelve una lista completa con todos los autores registrados.
+      tags:
+        - Autores
+      responses:
+        '200':
+          description: Lista de autores obtenida con éxito.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Author'
+        '500':
+          description: Error interno del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      summary: Crear un nuevo autor
+      description: Registra un autor en el sistema. Valida nombre obligatorio y formato de email único.
+      tags:
+        - Autores
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                bio:
+                  type: string
+      responses:
+        '201':
+          description: Autor registrado exitosamente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Author'
+        '400':
+          description: Datos de entrada inválidos o faltantes.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: El email provisto ya se encuentra registrado por otro usuario.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /authors/{id}:
+    get:
+      summary: Obtener un autor por ID
+      tags:
+        - Autores
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID numérico del autor a buscar
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Autor encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Author'
+        '400':
+          description: El ID provisto no es un entero válido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Autor no encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      summary: Actualizar parcialmente un autor
+      description: Modifica los campos enviados en el body. Si un campo no se envía, preserva el valor original (COALESCE).
+      tags:
+        - Autores
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID del autor a actualizar
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                bio:
+                  type: string
+      responses:
+        '200':
+          description: Autor actualizado correctamente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Author'
+        '400':
+          description: ID o tipos de datos del body inválidos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Autor no encontrado para actualizar.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: El nuevo email ya está en uso por otro autor.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: Eliminar un autor
+      description: Elimina al autor de la base de datos y remueve sus publicaciones asociadas de forma automática en cascada.
+      tags:
+        - Autores
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID del autor a eliminar
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Autor eliminado exitosamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  author:
+                    $ref: '#/components/schemas/Author'
+        '400':
+          description: ID inválido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Autor no encontrado para eliminar.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # =========================================================================
+  # RUTAS DE PUBLICACIONES (/posts)
+  # =========================================================================
+  /posts:
+    get:
+      summary: Obtener todos los posts
+      description: Retorna un listado de todos los posts guardados en la tabla.
+      tags:
+        - Publicaciones
+      responses:
+        '200':
+          description: Lista de posts obtenida con éxito.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Post'
+
+    post:
+      summary: Crear un nuevo post
+      description: Crea un post asociado a un autor existente. Si no se envía el campo 'published', se asigna false de manera explícita.
+      tags:
+        - Publicaciones
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - content
+                - author_id
+              properties:
+                title:
+                  type: string
+                content:
+                  type: string
+                author_id:
+                  type: integer
+                published:
+                  type: boolean
+      responses:
+        '201':
+          description: Post creado de manera exitosa.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+        '400':
+          description: Validación fallida del body o el autor especificado (author_id) no existe en la base de datos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /posts/{id}:
+    get:
+      summary: Obtener detalle de un post por ID
+      tags:
+        - Publicaciones
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID del post
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Post encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+        '400':
+          description: ID no válido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Post no encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      summary: Actualizar parcialmente un post
+      description: Actualiza dinámicamente los campos enviados usando la estrategia COALESCE en Postgres.
+      tags:
+        - Publicaciones
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID del post a modificar
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                content:
+                  type: string
+                author_id:
+                  type: integer
+                published:
+                  type: boolean
+      responses:
+        '200':
+          description: Post actualizado con éxito.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+        '400':
+          description: Tipos de datos inválidos en el body o el nuevo author_id enviado no existe.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Post no encontrado para actualizar.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: Eliminar un post
+      tags:
+        - Publicaciones
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID del post a remover
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Publicación eliminada.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  post:
+                    $ref: '#/components/schemas/Post'
+        '400':
+          description: ID no válido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Post no encontrado para eliminar.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /posts/author/{authorId}:
+    get:
+      summary: Obtener publicaciones de un autor específico
+      description: Realiza un JOIN para traer la información completa del post junto a los datos esenciales de su creador.
+      tags:
+        - Publicaciones
+      parameters:
+        - name: authorId
+          in: path
+          required: true
+          description: ID del autor a consultar
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Array de publicaciones del autor (retorna un array vacío si el autor existe pero no tiene posts creados).
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PostWithAuthor'
+        '400':
+          description: El ID de autor provisto no es un entero válido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
