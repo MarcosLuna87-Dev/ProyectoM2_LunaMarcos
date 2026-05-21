@@ -21,6 +21,10 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 app.use(router);
 
+app.get("/", (req,res) => {
+  res.json({message: "MiniBlog API", version: "1.0"});
+});
+
 // Ruta no encontrada - Antes del errorHandler
 app.use((req, res, next) => {
   next(notFound(`No se encontró la ruta ${req.method} ${req.originalUrl}`));
