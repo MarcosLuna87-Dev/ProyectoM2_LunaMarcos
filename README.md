@@ -215,3 +215,36 @@ npm run dev
 ```
 
 La API estará disponible en `http://localhost:3000`.
+
+---
+
+## 📸 Evidencias de Funcionamiento y Co-creación
+
+### 1. Documentación Viva e Interactiva (Swagger UI)
+A continuación se detalla la interfaz interactiva de OpenAPI corriendo desde el servidor de producción en Railway:
+
+- Interfaz de Swagger UI en Producción
+
+![Interfaz de Swagger UI en Producción](./screenshots/swagger-ui.png)
+
+- Respuesta GET /posts/author/:authorId (get_posts_by_author)
+
+![Respuesta GET /posts/author/:authorId](./screenshots/get_posts_by_author.png)
+
+- Respuesta al buscar autor por Id usando letras en lugar de números
+
+![Respuesta GET /authors/:authorId](./screenshots/get_author_by_id_wrong.png)
+
+
+### 2. Uso de Inteligencia Artificial en el Proceso de Desarrollo
+Como parte del proceso ágil de desarrollo e investigación guiada, se utilizó asistencia de IA como copiloto técnico para resolver el manejo centralizado de errores, la lógica de actualización parcial con `COALESCE` en PostgreSQL y el diseño de la especificación OpenAPI:
+
+- Prompt estructura openapi.yaml
+
+![Captura de pantalla del uso de IA](./screenshots/prompt_openapi_structure.png)
+
+- Respuesta de la IA
+
+![Captura de pantalla del uso de IA](./screenshots/answer__openapi_structure1.png)
+![Captura de pantalla del uso de IA](./screenshots/answer__openapi_structure2.png)
+![Captura de pantalla del uso de IA](./screenshots/answer__openapi_structure3.png)
